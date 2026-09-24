@@ -11,7 +11,7 @@
 </head>
 <body>
   <header class="top"><div><span class="eyebrow">ESPETINHO APP</span><h1>Nova venda</h1></div><button id="sair" class="plain" hidden>Sair</button></header>
-  <nav id="navegacao" class="nav" aria-label="Telas" hidden><button id="aba-venda" type="button" aria-current="page">Venda</button><button id="aba-caixa" type="button">Caixa</button><button id="aba-despesas" type="button">Despesas</button><button id="aba-produtos" type="button">Produtos</button></nav>
+  <nav id="navegacao" class="nav" aria-label="Telas" hidden><button id="aba-venda" type="button" aria-current="page">Venda</button><button id="aba-caixa" type="button">Caixa</button><button id="aba-despesas" type="button">Despesas</button><button id="aba-produtos" type="button">Produtos</button><button id="aba-resumo" type="button">Resumo</button></nav>
   <main>
     <section id="login" class="login card" hidden>
       <h2>Entrar</h2><p>Use o e-mail e a senha do estabelecimento.</p>
@@ -51,6 +51,21 @@
       <p id="produtos-estado" class="notice">Nenhum produto cadastrado.</p>
       <section class="grupo-produtos"><div class="lista-head"><h2>Espetinhos</h2><button id="atualizar-produtos" class="plain" type="button">Atualizar</button></div><div id="lista-produtos-espetinho"></div></section>
       <section class="grupo-produtos"><h2>Bebidas</h2><div id="lista-produtos-bebida"></div></section>
+    </section>
+    <section id="resumo" class="resumo-painel" hidden>
+      <div class="periodos" role="group" aria-label="Período do resumo">
+        <button type="button" data-periodo="hoje" aria-pressed="true">Hoje</button>
+        <button type="button" data-periodo="semana" aria-pressed="false">Semana</button>
+        <button type="button" data-periodo="mes" aria-pressed="false">Mês</button>
+      </div>
+      <p id="periodo-resumo" class="muted"></p>
+      <div class="indicadores resumo-indicadores"><div class="card destaque"><span>Vendeu</span><strong id="resumo-vendeu">R$ 0,00</strong></div><div class="card"><span>Gastou</span><strong id="resumo-gastou">R$ 0,00</strong></div><div class="card resultado"><span>Resultado</span><strong id="resumo-resultado">R$ 0,00</strong></div></div>
+      <p class="explicacao-resultado">Resultado = vendas − despesas registradas no aplicativo.</p>
+      <div class="resumo-secoes">
+        <section class="card"><div class="lista-head"><h2>Mais vendidos</h2><button id="atualizar-resumo" class="plain" type="button">Atualizar</button></div><p id="mais-vendidos-vazio" class="muted">Nenhuma venda neste período.</p><div id="mais-vendidos" class="ranking"></div></section>
+        <section class="card"><h2>Formas de pagamento</h2><div class="divisao"><div>Pix <strong id="resumo-pix">R$ 0,00</strong></div><div>Dinheiro <strong id="resumo-dinheiro">R$ 0,00</strong></div><div>Cartão <strong id="resumo-cartao">R$ 0,00</strong></div></div></section>
+      </div>
+      <p id="resumo-estado" class="notice" hidden></p>
     </section>
   </main>
   <dialog id="detalhe-venda" class="detalhe"><div class="lista-head"><h2>Detalhes da venda</h2><button id="fechar-detalhe" class="plain" type="button">Fechar</button></div><p id="detalhe-info"></p><div id="detalhe-itens"></div><div class="total"><span>Total</span><strong id="detalhe-total"></strong></div><button id="cancelar-registrada" class="danger" type="button">Cancelar esta venda</button><p class="muted">Para corrigir, cancele e registre a venda novamente.</p></dialog>
