@@ -42,8 +42,8 @@ function renderCarrinho() {
   }
   $('carrinho-vazio').hidden=carrinho.size>0;$('total').textContent=money(total);
   $('cancelar').disabled=salvando||carrinho.size===0;
-  $('finalizar').disabled=salvando||!pagamento||total<=0;
-  $('finalizar').textContent=salvando?'Salvando…':'Finalizar venda';
+  $('finalizar').disabled=salvando||!pagamento||total<=0||!navigator.onLine;
+  $('finalizar').textContent=salvando?'Salvando…':navigator.onLine?'Finalizar venda':'Sem internet — não salva';
 }
 function setQty(id,n){if(salvando)return;if(n<=0)carrinho.delete(id);else carrinho.set(id,n);renderCarrinho();}
 function renderPagamentos(){const el=$('pagamentos');el.replaceChildren();for(const p of pagamentos){const b=document.createElement('button');b.type='button';b.textContent=p.nome;b.setAttribute('aria-pressed',String(pagamento===p.id));b.addEventListener('click',()=>{if(salvando)return;pagamento=p.id;renderPagamentos();renderCarrinho();});el.append(b);}}
@@ -59,8 +59,12 @@ function exibirLogado(logado){$('login').hidden=logado;$('venda').hidden=!logado
 $('login-form').addEventListener('submit',async event=>{event.preventDefault();const b=event.target.querySelector('button');b.disabled=true;const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('senha').value});b.disabled=false;if(error)avisar('E-mail ou senha incorretos.');else {$('senha').value='';exibirLogado(true);}});
 $('sair').addEventListener('click',async()=>{await db.auth.signOut();exibirLogado(false);});
 $('recarregar').addEventListener('click',carregar);
+$('finalizar').title=navigator.onLine?'':'Sem internet';
+window.addEventListener('offline',()=>{$('finalizar').title='Sem internet';renderCarrinho();avisar('Sem internet. A venda não foi salva.');});
+window.addEventListener('online',()=>{$('finalizar').title='';renderCarrinho();avisar('Internet restabelecida. Você já pode finalizar a venda.');});
 $('cancelar').addEventListener('click',()=>{if(salvando)return;carrinho.clear();pagamento=null;renderCarrinho();renderPagamentos();avisar('Venda cancelada.');});
 $('finalizar').addEventListener('click',async()=>{
+  if(!navigator.onLine){avisar('Sem internet. A venda não foi salva.');return;}
   if(salvando||!pagamento||!carrinho.size)return;
   salvando=true;renderCarrinho();
   try {
