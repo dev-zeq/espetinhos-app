@@ -3,6 +3,14 @@ const KEY = 'sb_publishable_bfs8ShD7RgQ61Cv2ikt2Bw_GfN1E2zk';
 const db = supabase.createClient(URL, KEY, {db:{retry:false}});
 const $ = id => document.getElementById(id);
 const money = value => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(value);
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(error=>console.error('Service Worker:',error)));
+}
+document.querySelectorAll('dialog').forEach(dialog=>{
+  dialog.addEventListener('close',()=>document.body.classList.remove('modal-aberto'));
+  dialog.addEventListener('cancel',()=>document.body.classList.remove('modal-aberto'));
+});
+function abrirDialog(dialog){document.body.classList.add('modal-aberto');dialog.showModal();}
 let produtos = [], pagamentos = [], carrinho = new Map(), pagamento = null, salvando = false, avisoTimer;
 function avisar(texto) { const el=$('mensagem'); el.textContent=texto; el.hidden=false; clearTimeout(avisoTimer); avisoTimer=setTimeout(()=>el.hidden=true,3500); }
 function renderProdutos() {
@@ -145,7 +153,7 @@ async function carregarCaixa(){
 }
 async function abrirVenda(v,forma){
   vendaAberta=null;$('detalhe-info').textContent='Carregando produtos…';$('detalhe-itens').replaceChildren();$('cancelar-registrada').disabled=true;
-  $('detalhe-venda').showModal();
+  abrirDialog($('detalhe-venda'));
   const {data,error}=await db.from('itens_venda').select('produto_nome,quantidade,preco_unitario,subtotal').eq('venda_id',v.id).order('criado_em');
   if(!$('detalhe-venda').open)return;
   if(error){console.error(error);$('detalhe-info').textContent='Não foi possível carregar os produtos.';return;}
@@ -185,7 +193,7 @@ function abrirFormGasto(despesa=null){
   despesaEditando=despesa;$('titulo-gasto').textContent=despesa?'Editar gasto':'Registrar gasto';
   $('descricao-gasto').value=despesa?.descricao||'';
   $('valor-gasto').value=despesa?Number(despesa.valor).toFixed(2).replace('.',','):'';
-  $('erro-gasto').hidden=true;$('form-gasto').showModal();$('descricao-gasto').focus();
+  $('erro-gasto').hidden=true;abrirDialog($('form-gasto'));$('descricao-gasto').focus();
 }
 function renderDespesas(){
   const total=despesasHoje.reduce((s,d)=>s+Number(d.valor),0);$('total-despesas').textContent=money(total);
@@ -249,7 +257,7 @@ function abrirFormProduto(produto=null){
   produtoEditando=produto;$('titulo-produto').textContent=produto?'Editar produto':'Novo produto';
   $('nome-produto').value=produto?.nome||'';$('categoria-produto').value=produto?.categoria||'espetinho';
   $('preco-produto').value=produto?Number(produto.preco).toFixed(2).replace('.',','):'';
-  $('erro-produto').hidden=true;$('form-produto').showModal();$('nome-produto').focus();
+  $('erro-produto').hidden=true;abrirDialog($('form-produto'));$('nome-produto').focus();
 }
 function botaoProduto(texto,acao,classe='plain'){
   const b=document.createElement('button');b.type='button';b.className=classe;b.textContent=texto;b.disabled=alterandoProduto;b.addEventListener('click',acao);return b;
