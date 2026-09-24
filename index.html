@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff6e9">
+  <title>Venda · Espetinho App</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.102.0/dist/umd/supabase.min.js"></script>
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+  <header class="top"><div><span class="eyebrow">ESPETINHO APP</span><h1>Nova venda</h1></div><button id="sair" class="plain" hidden>Sair</button></header>
+  <main>
+    <section id="login" class="login card" hidden>
+      <h2>Entrar</h2><p>Use o e-mail e a senha do estabelecimento.</p>
+      <form id="login-form"><label>E-mail<input id="email" type="email" autocomplete="username" required></label><label>Senha<input id="senha" type="password" autocomplete="current-password" required></label><button class="primary">Entrar</button></form>
+    </section>
+    <section id="venda" class="layout" hidden>
+      <div class="catalogo">
+        <section><h2>Espetinhos</h2><div id="espetinhos" class="grid"></div></section>
+        <section><h2>Bebidas</h2><div id="bebidas" class="grid"></div></section>
+        <p id="catalogo-vazio" class="notice" hidden>Nenhum produto ativo cadastrado. Cadastre os produtos para começar a vender.</p>
+        <button id="recarregar" class="plain">Atualizar produtos</button>
+      </div>
+      <section class="resumo card" aria-label="Venda atual">
+        <div class="resumo-head"><h2>Venda atual</h2><button id="cancelar" class="plain" disabled>Cancelar venda</button></div>
+        <p id="carrinho-vazio" class="muted">Toque em um produto para começar.</p>
+        <div id="itens"></div>
+        <div class="total"><span>Total</span><strong id="total">R$ 0,00</strong></div>
+        <h3>Como recebeu?</h3><div id="pagamentos" class="pagamentos" role="group" aria-label="Forma de pagamento"></div>
+        <button id="finalizar" class="primary finalizar" disabled>Finalizar venda</button>
+      </section>
+    </section>
+  </main>
+  <div id="mensagem" class="mensagem" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
