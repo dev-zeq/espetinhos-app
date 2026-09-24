@@ -11,7 +11,7 @@
 </head>
 <body>
   <header class="top"><div><span class="eyebrow">ESPETINHO APP</span><h1>Nova venda</h1></div><button id="sair" class="plain" hidden>Sair</button></header>
-  <nav id="navegacao" class="nav" aria-label="Telas" hidden><button id="aba-venda" type="button" aria-current="page">Venda</button><button id="aba-caixa" type="button">Caixa</button><button id="aba-despesas" type="button">Despesas</button></nav>
+  <nav id="navegacao" class="nav" aria-label="Telas" hidden><button id="aba-venda" type="button" aria-current="page">Venda</button><button id="aba-caixa" type="button">Caixa</button><button id="aba-despesas" type="button">Despesas</button><button id="aba-produtos" type="button">Produtos</button></nav>
   <main>
     <section id="login" class="login card" hidden>
       <h2>Entrar</h2><p>Use o e-mail e a senha do estabelecimento.</p>
@@ -45,9 +45,17 @@
       <button id="registrar-gasto" class="primary registrar-gasto" type="button">Registrar gasto</button>
       <section class="gastos-dia"><div class="lista-head"><h2>Gastos do dia</h2><button id="atualizar-despesas" class="plain" type="button">Atualizar</button></div><p id="despesas-estado" class="notice">Nenhum gasto registrado hoje.</p><div id="lista-despesas"></div></section>
     </section>
+    <section id="produtos-painel" class="produtos-painel" hidden>
+      <button id="novo-produto" class="primary novo-produto" type="button">Novo produto</button>
+      <p class="muted">Ative somente o que deve aparecer na tela de venda.</p>
+      <p id="produtos-estado" class="notice">Nenhum produto cadastrado.</p>
+      <section class="grupo-produtos"><div class="lista-head"><h2>Espetinhos</h2><button id="atualizar-produtos" class="plain" type="button">Atualizar</button></div><div id="lista-produtos-espetinho"></div></section>
+      <section class="grupo-produtos"><h2>Bebidas</h2><div id="lista-produtos-bebida"></div></section>
+    </section>
   </main>
   <dialog id="detalhe-venda" class="detalhe"><div class="lista-head"><h2>Detalhes da venda</h2><button id="fechar-detalhe" class="plain" type="button">Fechar</button></div><p id="detalhe-info"></p><div id="detalhe-itens"></div><div class="total"><span>Total</span><strong id="detalhe-total"></strong></div><button id="cancelar-registrada" class="danger" type="button">Cancelar esta venda</button><p class="muted">Para corrigir, cancele e registre a venda novamente.</p></dialog>
   <dialog id="form-gasto" class="detalhe form-gasto"><form id="gasto-form"><div class="lista-head"><h2 id="titulo-gasto">Registrar gasto</h2><button id="fechar-gasto" class="plain" type="button">Fechar</button></div><label>Descrição do gasto<input id="descricao-gasto" type="text" maxlength="120" autocomplete="off" placeholder="Ex.: Carvão" required></label><label>Valor<input id="valor-gasto" type="text" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00" required></label><p id="erro-gasto" class="erro" hidden></p><button id="salvar-gasto" class="primary" type="submit">Salvar gasto</button><button id="cancelar-edicao-gasto" class="plain cancelar-form" type="button">Cancelar</button></form></dialog>
+  <dialog id="form-produto" class="detalhe form-produto"><form id="produto-form"><div class="lista-head"><h2 id="titulo-produto">Novo produto</h2><button id="fechar-produto" class="plain" type="button">Fechar</button></div><label>Nome<input id="nome-produto" type="text" maxlength="120" autocomplete="off" placeholder="Ex.: Espetinho de carne" required></label><label>Categoria<select id="categoria-produto" required><option value="espetinho">Espetinhos</option><option value="bebida">Bebidas</option></select></label><label>Preço<input id="preco-produto" type="text" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00" required></label><p id="erro-produto" class="erro" hidden></p><button id="salvar-produto" class="primary" type="submit">Salvar produto</button><button id="cancelar-edicao-produto" class="plain cancelar-form" type="button">Cancelar</button></form></dialog>
   <div id="mensagem" class="mensagem" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

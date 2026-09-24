@@ -93,17 +93,20 @@ async function todasLinhas(fazerConsulta){
   }
 }
 function mostrarAba(aba){
-  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';$('despesas').hidden=aba!=='despesas';
+  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';$('despesas').hidden=aba!=='despesas';$('produtos-painel').hidden=aba!=='produtos';
   $('aba-venda').setAttribute('aria-current',aba==='venda'?'page':'false');
   $('aba-caixa').setAttribute('aria-current',aba==='caixa'?'page':'false');
   $('aba-despesas').setAttribute('aria-current',aba==='despesas'?'page':'false');
-  document.querySelector('h1').textContent=aba==='venda'?'Nova venda':aba==='caixa'?'Caixa':'Despesas';
+  $('aba-produtos').setAttribute('aria-current',aba==='produtos'?'page':'false');
+  document.querySelector('h1').textContent={venda:'Nova venda',caixa:'Caixa',despesas:'Despesas',produtos:'Produtos'}[aba];
   if(aba==='caixa')carregarCaixa();
   if(aba==='despesas')carregarDespesas();
+  if(aba==='produtos')carregarProdutosPainel();
 }
 $('aba-venda').addEventListener('click',()=>mostrarAba('venda'));
 $('aba-caixa').addEventListener('click',()=>mostrarAba('caixa'));
 $('aba-despesas').addEventListener('click',()=>mostrarAba('despesas'));
+$('aba-produtos').addEventListener('click',()=>mostrarAba('produtos'));
 $('atualizar-caixa').addEventListener('click',carregarCaixa);
 async function carregarCaixa(){
   if(carregandoCaixa)return;
@@ -164,7 +167,7 @@ $('cancelar-registrada').addEventListener('click',async()=>{
 });
 // Mantém a sessão de login e a navegação no mesmo documento.
 const exibirLogadoOriginal=exibirLogado;
-exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('detalhe-venda').close();}else mostrarAba('venda');};
+exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('despesas').hidden=true;$('produtos-painel').hidden=true;$('detalhe-venda').close();$('form-gasto').close();$('form-produto').close();}else mostrarAba('venda');};
 
 let despesasHoje=[], despesaEditando=null, carregandoDespesas=false, salvandoGasto=false;
 function parseValor(texto){
@@ -234,4 +237,94 @@ $('gasto-form').addEventListener('submit',async event=>{
     await Promise.all([carregarDespesas(),carregarCaixa()]);
   }catch(error){console.error(error);erro.textContent='Não foi possível salvar. Confira a conexão e tente novamente.';erro.hidden=false;}
   finally{salvandoGasto=false;$('salvar-gasto').disabled=false;$('salvar-gasto').textContent='Salvar gasto';}
+});
+
+let produtosPainel=[], produtoEditando=null, carregandoProdutos=false, salvandoProduto=false, alterandoProduto=false;
+function produtosDaCategoria(categoria){return produtosPainel.filter(p=>p.categoria===categoria);}
+function fecharFormProduto(){if(!salvandoProduto)$('form-produto').close();}
+function abrirFormProduto(produto=null){
+  produtoEditando=produto;$('titulo-produto').textContent=produto?'Editar produto':'Novo produto';
+  $('nome-produto').value=produto?.nome||'';$('categoria-produto').value=produto?.categoria||'espetinho';
+  $('preco-produto').value=produto?Number(produto.preco).toFixed(2).replace('.',','):'';
+  $('erro-produto').hidden=true;$('form-produto').showModal();$('nome-produto').focus();
+}
+function botaoProduto(texto,acao,classe='plain'){
+  const b=document.createElement('button');b.type='button';b.className=classe;b.textContent=texto;b.disabled=alterandoProduto;b.addEventListener('click',acao);return b;
+}
+function renderProdutosPainel(){
+  for(const categoria of ['espetinho','bebida']){
+    const lista=$('lista-produtos-'+categoria);lista.replaceChildren();const itens=produtosDaCategoria(categoria);
+    itens.forEach((p,indice)=>{
+      const item=document.createElement('article');item.className='produto-linha';
+      const info=document.createElement('div');info.className='produto-info';
+      const nome=document.createElement('strong'),preco=document.createElement('span');nome.textContent=p.nome;preco.textContent=money(p.preco);info.append(nome,preco);
+      const situacao=document.createElement('span');situacao.className='situacao'+(p.ativo?'':' inativo');situacao.textContent=p.ativo?'Ativo':'Inativo';
+      const acoes=document.createElement('div');acoes.className='produto-acoes';
+      acoes.append(
+        botaoProduto('Subir',()=>moverProduto(p,-1),'plain'),
+        botaoProduto('Descer',()=>moverProduto(p,1),'plain'),
+        botaoProduto('Editar',()=>abrirFormProduto(p)),
+        botaoProduto(p.ativo?'Desativar':'Ativar',()=>alternarProduto(p),'plain alternar')
+      );
+      acoes.children[0].disabled=alterandoProduto||indice===0;acoes.children[1].disabled=alterandoProduto||indice===itens.length-1;
+      item.append(info,situacao,acoes);lista.append(item);
+    });
+  }
+  $('produtos-estado').hidden=produtosPainel.length>0;
+  if(!produtosPainel.length)$('produtos-estado').textContent='Nenhum produto cadastrado. Toque em Novo produto para começar.';
+}
+async function carregarProdutosPainel(){
+  if(carregandoProdutos)return;carregandoProdutos=true;$('atualizar-produtos').disabled=true;
+  $('produtos-estado').hidden=false;$('produtos-estado').textContent='Carregando produtos…';
+  try{
+    produtosPainel=await todasLinhas(()=>db.from('produtos').select('id,nome,categoria,preco,ativo,ordem,criado_em').order('categoria').order('ordem').order('nome'));
+    renderProdutosPainel();
+  }catch(error){console.error(error);$('produtos-estado').textContent='Não foi possível carregar os produtos. Toque em Atualizar.';avisar('Não foi possível atualizar os produtos.');}
+  finally{carregandoProdutos=false;$('atualizar-produtos').disabled=false;}
+}
+async function atualizarProduto(id,alteracoes){
+  const {data,error}=await db.from('produtos').update(alteracoes).eq('id',id).select('id');
+  if(error)throw error;if(data?.length!==1)throw new Error('Produto não encontrado ou sem permissão');
+}
+async function alternarProduto(produto){
+  if(alterandoProduto)return;alterandoProduto=true;renderProdutosPainel();
+  try{await atualizarProduto(produto.id,{ativo:!produto.ativo});avisar(produto.ativo?'Produto desativado.':'Produto ativado.');await Promise.all([carregarProdutosPainel(),carregar()]);}
+  catch(error){console.error(error);avisar('Não foi possível alterar o produto.');}
+  finally{alterandoProduto=false;renderProdutosPainel();}
+}
+async function moverProduto(produto,direcao){
+  if(alterandoProduto)return;const itens=produtosDaCategoria(produto.categoria), atual=itens.findIndex(p=>p.id===produto.id), outro=itens[atual+direcao];if(!outro)return;
+  alterandoProduto=true;renderProdutosPainel();
+  try{
+    const novaOrdem=[...itens];[novaOrdem[atual],novaOrdem[atual+direcao]]=[novaOrdem[atual+direcao],novaOrdem[atual]];
+    await Promise.all(novaOrdem.map((item,indice)=>atualizarProduto(item.id,{ordem:(indice+1)*10})));
+    avisar('Ordem atualizada.');await Promise.all([carregarProdutosPainel(),carregar()]);
+  }catch(error){console.error(error);avisar('Não foi possível mudar a ordem.');await carregarProdutosPainel();}
+  finally{alterandoProduto=false;renderProdutosPainel();}
+}
+$('novo-produto').addEventListener('click',()=>abrirFormProduto());
+$('atualizar-produtos').addEventListener('click',carregarProdutosPainel);
+$('fechar-produto').addEventListener('click',fecharFormProduto);
+$('cancelar-edicao-produto').addEventListener('click',fecharFormProduto);
+$('form-produto').addEventListener('close',()=>{produtoEditando=null;$('produto-form').reset();$('erro-produto').hidden=true;});
+$('produto-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(salvandoProduto)return;
+  const nome=$('nome-produto').value.trim(),categoria=$('categoria-produto').value,preco=parseValor($('preco-produto').value),erro=$('erro-produto');
+  if(!nome){erro.textContent='Informe o nome do produto.';erro.hidden=false;return;}
+  if(!['espetinho','bebida'].includes(categoria)){erro.textContent='Escolha Espetinhos ou Bebidas.';erro.hidden=false;return;}
+  if(!Number.isFinite(preco)||preco<=0){erro.textContent='Informe um preço maior que zero. Exemplo: 12,50.';erro.hidden=false;return;}
+  salvandoProduto=true;$('salvar-produto').disabled=true;$('salvar-produto').textContent='Salvando…';erro.hidden=true;
+  try{
+    if(produtoEditando){
+      const alteracoes={nome,categoria,preco};
+      if(categoria!==produtoEditando.categoria)alteracoes.ordem=Math.max(0,...produtosDaCategoria(categoria).map(p=>Number(p.ordem)))+10;
+      await atualizarProduto(produtoEditando.id,alteracoes);
+    }else{
+      const ordem=Math.max(0,...produtosDaCategoria(categoria).map(p=>Number(p.ordem)))+10;
+      const {data,error}=await db.from('produtos').insert({nome,categoria,preco,ordem}).select('id');if(error)throw error;if(data?.length!==1)throw new Error('Produto não foi salvo');
+    }
+    const editou=!!produtoEditando;$('form-produto').close();avisar(editou?'Produto atualizado.':'Produto cadastrado!');
+    await Promise.all([carregarProdutosPainel(),carregar()]);
+  }catch(error){console.error(error);erro.textContent='Não foi possível salvar. Confira a conexão e tente novamente.';erro.hidden=false;}
+  finally{salvandoProduto=false;$('salvar-produto').disabled=false;$('salvar-produto').textContent='Salvar produto';}
 });

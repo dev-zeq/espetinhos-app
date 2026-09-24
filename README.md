@@ -37,3 +37,9 @@ A navegação **Venda / Caixa** usa a mesma sessão. O Caixa mostra vendas, desp
 A aba **Despesas** mostra o total gasto no dia e os lançamentos mais recentes. **Registrar gasto** pede somente descrição e valor; a data é preenchida pelo aplicativo conforme `America/Sao_Paulo` e o horário é registrado automaticamente pelo banco. O valor aceita formato brasileiro, como `25,50`, e é exibido em reais.
 
 Cada gasto pode ser editado ou excluído com confirmação. Após criar, editar ou excluir, Despesas e Caixa são atualizados para refletir imediatamente **Gastou hoje** e **Resultado do dia**. O módulo reutiliza a tabela `despesas`, a autenticação e as políticas RLS do módulo 01; nenhuma estrutura de banco adicional foi criada.
+
+## 05 — Produtos
+
+A aba **Produtos** administra o cardápio sem alterar código ou acessar o Supabase. **Novo produto** pede somente nome, categoria e preço; o valor aceita formato brasileiro, como `10,00` e `12,50`. Os itens aparecem separados entre Espetinhos e Bebidas, com preço e situação visíveis.
+
+É possível editar nome, categoria e preço, ativar ou desativar e ajustar a prioridade com **Subir** e **Descer**. A ordem usa a coluna existente `ordem`. Produtos inativos continuam cadastrados e preservam os itens históricos das vendas, mas deixam de aparecer imediatamente na Tela Venda. O módulo reutiliza a tabela `produtos`, a autenticação e as políticas RLS existentes; não permite exclusão física e não cria nova estrutura de banco.
