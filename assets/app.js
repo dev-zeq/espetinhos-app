@@ -93,20 +93,23 @@ async function todasLinhas(fazerConsulta){
   }
 }
 function mostrarAba(aba){
-  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';$('despesas').hidden=aba!=='despesas';$('produtos-painel').hidden=aba!=='produtos';
+  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';$('despesas').hidden=aba!=='despesas';$('produtos-painel').hidden=aba!=='produtos';$('resumo').hidden=aba!=='resumo';
   $('aba-venda').setAttribute('aria-current',aba==='venda'?'page':'false');
   $('aba-caixa').setAttribute('aria-current',aba==='caixa'?'page':'false');
   $('aba-despesas').setAttribute('aria-current',aba==='despesas'?'page':'false');
   $('aba-produtos').setAttribute('aria-current',aba==='produtos'?'page':'false');
-  document.querySelector('h1').textContent={venda:'Nova venda',caixa:'Caixa',despesas:'Despesas',produtos:'Produtos'}[aba];
+  $('aba-resumo').setAttribute('aria-current',aba==='resumo'?'page':'false');
+  document.querySelector('h1').textContent={venda:'Nova venda',caixa:'Caixa',despesas:'Despesas',produtos:'Produtos',resumo:'Resumo'}[aba];
   if(aba==='caixa')carregarCaixa();
   if(aba==='despesas')carregarDespesas();
   if(aba==='produtos')carregarProdutosPainel();
+  if(aba==='resumo')carregarResumo();
 }
 $('aba-venda').addEventListener('click',()=>mostrarAba('venda'));
 $('aba-caixa').addEventListener('click',()=>mostrarAba('caixa'));
 $('aba-despesas').addEventListener('click',()=>mostrarAba('despesas'));
 $('aba-produtos').addEventListener('click',()=>mostrarAba('produtos'));
+$('aba-resumo').addEventListener('click',()=>mostrarAba('resumo'));
 $('atualizar-caixa').addEventListener('click',carregarCaixa);
 async function carregarCaixa(){
   if(carregandoCaixa)return;
@@ -167,7 +170,7 @@ $('cancelar-registrada').addEventListener('click',async()=>{
 });
 // Mantém a sessão de login e a navegação no mesmo documento.
 const exibirLogadoOriginal=exibirLogado;
-exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('despesas').hidden=true;$('produtos-painel').hidden=true;$('detalhe-venda').close();$('form-gasto').close();$('form-produto').close();}else mostrarAba('venda');};
+exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('despesas').hidden=true;$('produtos-painel').hidden=true;$('resumo').hidden=true;$('detalhe-venda').close();$('form-gasto').close();$('form-produto').close();}else mostrarAba('venda');};
 
 let despesasHoje=[], despesaEditando=null, carregandoDespesas=false, salvandoGasto=false;
 function parseValor(texto){
@@ -328,3 +331,50 @@ $('produto-form').addEventListener('submit',async event=>{
   }catch(error){console.error(error);erro.textContent='Não foi possível salvar. Confira a conexão e tente novamente.';erro.hidden=false;}
   finally{salvandoProduto=false;$('salvar-produto').disabled=false;$('salvar-produto').textContent='Salvar produto';}
 });
+
+let periodoResumo='hoje', carregandoResumo=false;
+function somarDias(ymd,dias){const [a,m,d]=ymd.split('-').map(Number);return partesData(new Date(Date.UTC(a,m-1,d+dias,12)));}
+function limitesResumo(periodo){
+  const hoje=partesData(new Date()),[ano,mes,dia]=hoje.split('-').map(Number);
+  if(periodo==='hoje')return {inicio:hoje,fim:somarDias(hoje,1),rotulo:'Hoje'};
+  if(periodo==='semana'){
+    const diaSemana=new Date(Date.UTC(ano,mes-1,dia,12)).getUTCDay();
+    const inicio=somarDias(hoje,-((diaSemana+6)%7));
+    return {inicio,fim:somarDias(hoje,1),rotulo:'Esta semana, desde segunda-feira'};
+  }
+  const inicio=`${ano}-${String(mes).padStart(2,'0')}-01`;
+  const proximoMes=mes===12?`${ano+1}-01-01`:`${ano}-${String(mes+1).padStart(2,'0')}-01`;
+  return {inicio,fim:proximoMes,rotulo:'Este mês'};
+}
+async function itensDasVendas(ids){
+  const itens=[];
+  for(let i=0;i<ids.length;i+=100){
+    const lote=ids.slice(i,i+100);
+    itens.push(...await todasLinhas(()=>db.from('itens_venda').select('produto_nome,quantidade').in('venda_id',lote).order('id')));
+  }
+  return itens;
+}
+async function carregarResumo(){
+  if(carregandoResumo)return;carregandoResumo=true;$('atualizar-resumo').disabled=true;$('resumo-estado').hidden=false;$('resumo-estado').textContent='Carregando resumo…';
+  try{
+    const limite=limitesResumo(periodoResumo);
+    const [vendas,despesas,fr]=await Promise.all([
+      todasLinhas(()=>db.from('vendas').select('id,total,forma_pagamento_id').gte('vendida_em',inicioDia(limite.inicio)).lt('vendida_em',inicioDia(limite.fim)).order('vendida_em').order('id')),
+      todasLinhas(()=>db.from('despesas').select('valor').gte('data_despesa',limite.inicio).lt('data_despesa',limite.fim).order('data_despesa').order('id')),
+      db.from('formas_pagamento').select('id,codigo')
+    ]);
+    if(fr.error)throw fr.error;
+    const itens=await itensDasVendas(vendas.map(v=>v.id));
+    const vendido=vendas.reduce((s,v)=>s+Number(v.total),0),gasto=despesas.reduce((s,d)=>s+Number(d.valor),0),formas=new Map(fr.data.map(f=>[f.id,f.codigo])),por={pix:0,dinheiro:0,cartao:0};
+    for(const venda of vendas){const codigo=formas.get(venda.forma_pagamento_id);if(Object.hasOwn(por,codigo))por[codigo]+=Number(venda.total);}
+    $('periodo-resumo').textContent=limite.rotulo;
+    for(const [id,valor] of Object.entries({'resumo-vendeu':vendido,'resumo-gastou':gasto,'resumo-resultado':vendido-gasto,'resumo-pix':por.pix,'resumo-dinheiro':por.dinheiro,'resumo-cartao':por.cartao}))$(id).textContent=money(valor);
+    const quantidades=new Map();for(const item of itens)quantidades.set(item.produto_nome,(quantidades.get(item.produto_nome)||0)+Number(item.quantidade));
+    const ranking=[...quantidades].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'pt-BR'));$('mais-vendidos').replaceChildren();
+    for(const [nome,quantidade] of ranking){const linha=document.createElement('div'),produto=document.createElement('span'),total=document.createElement('strong');produto.textContent=nome;total.textContent=`${quantidade} ${quantidade===1?'vendido':'vendidos'}`;linha.append(produto,total);$('mais-vendidos').append(linha);}
+    $('mais-vendidos-vazio').hidden=ranking.length>0;$('resumo-estado').hidden=true;
+  }catch(error){console.error(error);$('resumo-estado').textContent='Não foi possível carregar o Resumo. Toque em Atualizar.';avisar('Não foi possível atualizar o Resumo.');}
+  finally{carregandoResumo=false;$('atualizar-resumo').disabled=false;}
+}
+document.querySelectorAll('[data-periodo]').forEach(botao=>botao.addEventListener('click',()=>{periodoResumo=botao.dataset.periodo;document.querySelectorAll('[data-periodo]').forEach(b=>b.setAttribute('aria-pressed',String(b===botao)));carregarResumo();}));
+$('atualizar-resumo').addEventListener('click',carregarResumo);
