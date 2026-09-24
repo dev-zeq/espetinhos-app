@@ -93,14 +93,17 @@ async function todasLinhas(fazerConsulta){
   }
 }
 function mostrarAba(aba){
-  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';
+  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';$('despesas').hidden=aba!=='despesas';
   $('aba-venda').setAttribute('aria-current',aba==='venda'?'page':'false');
   $('aba-caixa').setAttribute('aria-current',aba==='caixa'?'page':'false');
-  document.querySelector('h1').textContent=aba==='venda'?'Nova venda':'Caixa';
+  $('aba-despesas').setAttribute('aria-current',aba==='despesas'?'page':'false');
+  document.querySelector('h1').textContent=aba==='venda'?'Nova venda':aba==='caixa'?'Caixa':'Despesas';
   if(aba==='caixa')carregarCaixa();
+  if(aba==='despesas')carregarDespesas();
 }
 $('aba-venda').addEventListener('click',()=>mostrarAba('venda'));
 $('aba-caixa').addEventListener('click',()=>mostrarAba('caixa'));
+$('aba-despesas').addEventListener('click',()=>mostrarAba('despesas'));
 $('atualizar-caixa').addEventListener('click',carregarCaixa);
 async function carregarCaixa(){
   if(carregandoCaixa)return;
@@ -162,3 +165,73 @@ $('cancelar-registrada').addEventListener('click',async()=>{
 // Mantém a sessão de login e a navegação no mesmo documento.
 const exibirLogadoOriginal=exibirLogado;
 exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('detalhe-venda').close();}else mostrarAba('venda');};
+
+let despesasHoje=[], despesaEditando=null, carregandoDespesas=false, salvandoGasto=false;
+function parseValor(texto){
+  const limpo=texto.trim().replace(/R\$\s?/gi,'').replace(/\s/g,'');
+  if(!limpo)return NaN;
+  const normalizado=limpo.includes(',')?limpo.replace(/\./g,'').replace(',','.'):limpo;
+  const valor=Number(normalizado);
+  return Number.isFinite(valor)?Math.round(valor*100)/100:NaN;
+}
+function fecharFormGasto(){if(!salvandoGasto)$('form-gasto').close();}
+function abrirFormGasto(despesa=null){
+  despesaEditando=despesa;$('titulo-gasto').textContent=despesa?'Editar gasto':'Registrar gasto';
+  $('descricao-gasto').value=despesa?.descricao||'';
+  $('valor-gasto').value=despesa?Number(despesa.valor).toFixed(2).replace('.',','):'';
+  $('erro-gasto').hidden=true;$('form-gasto').showModal();$('descricao-gasto').focus();
+}
+function renderDespesas(){
+  const total=despesasHoje.reduce((s,d)=>s+Number(d.valor),0);$('total-despesas').textContent=money(total);
+  const lista=$('lista-despesas');lista.replaceChildren();
+  for(const d of despesasHoje){
+    const item=document.createElement('article');item.className='gasto-linha';
+    const info=document.createElement('div'), descricao=document.createElement('strong'), horario=document.createElement('span');
+    descricao.textContent=d.descricao;horario.textContent=horaLocal.format(new Date(d.criado_em));info.append(descricao,horario);
+    const valor=document.createElement('strong');valor.className='gasto-valor';valor.textContent=money(d.valor);
+    const acoes=document.createElement('div');acoes.className='gasto-acoes';
+    const editar=document.createElement('button');editar.type='button';editar.className='plain';editar.textContent='Editar';editar.addEventListener('click',()=>abrirFormGasto(d));
+    const excluir=document.createElement('button');excluir.type='button';excluir.className='plain excluir';excluir.textContent='Excluir';excluir.addEventListener('click',()=>excluirDespesa(d));
+    acoes.append(editar,excluir);item.append(info,valor,acoes);lista.append(item);
+  }
+  $('despesas-estado').hidden=despesasHoje.length>0;
+  if(!despesasHoje.length)$('despesas-estado').textContent='Nenhum gasto registrado hoje.';
+}
+async function carregarDespesas(){
+  if(carregandoDespesas)return;carregandoDespesas=true;$('atualizar-despesas').disabled=true;
+  $('despesas-estado').hidden=false;$('despesas-estado').textContent='Carregando gastos…';
+  try{
+    const hoje=partesData(new Date());
+    despesasHoje=await todasLinhas(()=>db.from('despesas').select('id,descricao,valor,data_despesa,criado_em').eq('data_despesa',hoje).order('criado_em',{ascending:false}).order('id',{ascending:false}));
+    $('data-despesas').textContent='Hoje, '+new Intl.DateTimeFormat('pt-BR',{timeZone:ZONA,dateStyle:'long'}).format(new Date());renderDespesas();
+  }catch(error){console.error(error);$('despesas-estado').textContent='Não foi possível carregar os gastos. Toque em Atualizar.';avisar('Não foi possível atualizar as despesas.');}
+  finally{carregandoDespesas=false;$('atualizar-despesas').disabled=false;}
+}
+async function excluirDespesa(d){
+  if(!window.confirm(`Excluir o gasto “${d.descricao}” de ${money(d.valor)}?`))return;
+  try{
+    const {data,error}=await db.from('despesas').delete().eq('id',d.id).select('id');if(error)throw error;if(data?.length!==1)throw new Error('Despesa não encontrada ou sem permissão');
+    avisar('Gasto excluído.');await Promise.all([carregarDespesas(),carregarCaixa()]);
+  }catch(error){console.error(error);avisar('Não foi possível excluir. Confira a conexão e tente novamente.');}
+}
+$('registrar-gasto').addEventListener('click',()=>abrirFormGasto());
+$('atualizar-despesas').addEventListener('click',carregarDespesas);
+$('fechar-gasto').addEventListener('click',fecharFormGasto);
+$('cancelar-edicao-gasto').addEventListener('click',fecharFormGasto);
+$('form-gasto').addEventListener('close',()=>{despesaEditando=null;$('gasto-form').reset();$('erro-gasto').hidden=true;});
+$('gasto-form').addEventListener('submit',async event=>{
+  event.preventDefault();if(salvandoGasto)return;
+  const descricao=$('descricao-gasto').value.trim(), valor=parseValor($('valor-gasto').value), erro=$('erro-gasto');
+  if(!descricao){erro.textContent='Informe a descrição do gasto.';erro.hidden=false;return;}
+  if(!Number.isFinite(valor)||valor<=0){erro.textContent='Informe um valor maior que zero. Exemplo: 25,50.';erro.hidden=false;return;}
+  salvandoGasto=true;$('salvar-gasto').disabled=true;$('salvar-gasto').textContent='Salvando…';erro.hidden=true;
+  try{
+    const consulta=despesaEditando
+      ?db.from('despesas').update({descricao,valor}).eq('id',despesaEditando.id).select('id')
+      :db.from('despesas').insert({descricao,valor,data_despesa:partesData(new Date())}).select('id');
+    const {data,error}=await consulta;if(error)throw error;if(data?.length!==1)throw new Error('Despesa não foi salva');
+    const editou=!!despesaEditando;$('form-gasto').close();avisar(editou?'Gasto atualizado.':'Gasto registrado! Pode lançar outro.');
+    await Promise.all([carregarDespesas(),carregarCaixa()]);
+  }catch(error){console.error(error);erro.textContent='Não foi possível salvar. Confira a conexão e tente novamente.';erro.hidden=false;}
+  finally{salvandoGasto=false;$('salvar-gasto').disabled=false;$('salvar-gasto').textContent='Salvar gasto';}
+});

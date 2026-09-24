@@ -31,3 +31,9 @@ A função está em `supabase/migrations/20260924130000_modulo_02_registrar_vend
 A navegação **Venda / Caixa** usa a mesma sessão. O Caixa mostra vendas, despesas e resultado do dia; agrupa os recebimentos em Pix, Dinheiro e Cartão e lista as vendas recentes. Toque numa venda para consultar os produtos e quantidades. Para corrigir uma venda, cancele com confirmação e registre uma nova pela tela Venda. A exclusão usa a política RLS de `vendas` e remove os itens em cascata na mesma operação; o Caixa é atualizado após sucesso.
 
 “Hoje” segue `America/Sao_Paulo`, inclusive no filtro de instantes `vendida_em`. As despesas existentes são lidas pela coluna `data_despesa`, sem cadastro nesta etapa. A leitura pagina os registros para que o total não dependa do limite padrão de linhas da API. Ainda não há produtos, despesas ou usuário final cadastrados; essas etapas permanecem nos módulos previstos.
+
+## 04 — Despesas
+
+A aba **Despesas** mostra o total gasto no dia e os lançamentos mais recentes. **Registrar gasto** pede somente descrição e valor; a data é preenchida pelo aplicativo conforme `America/Sao_Paulo` e o horário é registrado automaticamente pelo banco. O valor aceita formato brasileiro, como `25,50`, e é exibido em reais.
+
+Cada gasto pode ser editado ou excluído com confirmação. Após criar, editar ou excluir, Despesas e Caixa são atualizados para refletir imediatamente **Gastou hoje** e **Resultado do dia**. O módulo reutiliza a tabela `despesas`, a autenticação e as políticas RLS do módulo 01; nenhuma estrutura de banco adicional foi criada.
