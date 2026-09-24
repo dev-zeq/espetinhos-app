@@ -49,3 +49,9 @@ A aba **Produtos** administra o cardápio sem alterar código ou acessar o Supab
 A aba **Resumo** oferece os períodos Hoje, Semana e Mês. Para cada período, mostra Vendeu, Gastou e Resultado, calculado simplesmente como vendas menos despesas registradas no aplicativo. Semana significa a semana atual desde segunda-feira; Mês significa o mês calendário atual. Todos os limites respeitam `America/Sao_Paulo`.
 
 **Mais vendidos** soma as quantidades registradas em `itens_venda` e usa `produto_nome`, preservando o histórico mesmo se um produto for editado ou desativado. **Formas de pagamento** separa os valores recebidos em Pix, Dinheiro e Cartão. A tela reutiliza as tabelas e políticas RLS existentes, não cria totais duplicados nem nova estrutura no banco.
+
+## 07 — PWA e celular
+
+O aplicativo inclui manifest, ícones comuns e maskable em 192 e 512 px e Service Worker. Em hospedagem HTTPS, o Android pode instalar o **Espetinho App** na tela inicial e abri-lo em modo standalone. O Service Worker guarda somente os arquivos essenciais da interface; leituras e gravações no Supabase continuam exigindo conexão.
+
+Os arquivos principais usam rede primeiro, com o cache apenas como alternativa quando a rede falha. Cada nova versão deve incrementar a constante `CACHE` em `sw.js`; durante a ativação, caches antigos são removidos. Em telas pequenas, a navegação fica fixa na parte inferior, sem rolagem horizontal, e formulários e valores foram ajustados para a altura e largura disponíveis.
