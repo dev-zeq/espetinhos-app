@@ -64,3 +64,101 @@ $('finalizar').addEventListener('click',async()=>{
   finally{salvando=false;renderCarrinho();}
 });
 db.auth.getSession().then(({data})=>exibirLogado(!!data.session)).catch(()=>avisar('Sem conexão. Tente novamente.'));
+
+// O dia comercial segue o fuso do estabelecimento, independentemente do fuso do aparelho.
+const ZONA = 'America/Sao_Paulo';
+const dataLocal = new Intl.DateTimeFormat('en-CA', {timeZone:ZONA,year:'numeric',month:'2-digit',day:'2-digit'});
+const horaLocal = new Intl.DateTimeFormat('pt-BR', {timeZone:ZONA,hour:'2-digit',minute:'2-digit'});
+const offsetLocal = new Intl.DateTimeFormat('en-US', {timeZone:ZONA,timeZoneName:'shortOffset'});
+function partesData(instante){const p=Object.fromEntries(dataLocal.formatToParts(instante).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`;}
+function inicioDia(ymd){
+  const [y,m,d]=ymd.split('-').map(Number), base=Date.UTC(y,m-1,d);
+  let t=base;
+  for(let i=0;i<3;i++){
+    const z=offsetLocal.formatToParts(new Date(t)).find(x=>x.type==='timeZoneName').value;
+    const match=/GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(z);
+    const offset=match?(match[1]==='-'?-1:1)*(Number(match[2])*60+Number(match[3]||0)):0;
+    t=base-offset*60000;
+  }
+  return new Date(t).toISOString();
+}
+let vendaAberta=null, carregandoCaixa=false, cancelandoRegistrada=false;
+async function todasLinhas(fazerConsulta){
+  const linhas=[];
+  for(let inicio=0;;inicio+=500){
+    const {data,error}=await fazerConsulta().range(inicio,inicio+499);
+    if(error)throw error;
+    linhas.push(...data);
+    if(data.length<500)return linhas;
+  }
+}
+function mostrarAba(aba){
+  $('venda').hidden=aba!=='venda';$('caixa').hidden=aba!=='caixa';
+  $('aba-venda').setAttribute('aria-current',aba==='venda'?'page':'false');
+  $('aba-caixa').setAttribute('aria-current',aba==='caixa'?'page':'false');
+  document.querySelector('h1').textContent=aba==='venda'?'Nova venda':'Caixa';
+  if(aba==='caixa')carregarCaixa();
+}
+$('aba-venda').addEventListener('click',()=>mostrarAba('venda'));
+$('aba-caixa').addEventListener('click',()=>mostrarAba('caixa'));
+$('atualizar-caixa').addEventListener('click',carregarCaixa);
+async function carregarCaixa(){
+  if(carregandoCaixa)return;
+  carregandoCaixa=true;$('atualizar-caixa').disabled=true;
+  $('caixa-estado').hidden=false;$('caixa-estado').textContent='Carregando caixa…';
+  try{
+    const hoje=partesData(new Date());
+    const amanha=partesData(new Date(Date.parse(inicioDia(hoje))+36*3600000));
+    const [vendas,despesas,fr]=await Promise.all([
+      todasLinhas(()=>db.from('vendas').select('id,total,vendida_em,forma_pagamento_id').gte('vendida_em',inicioDia(hoje)).lt('vendida_em',inicioDia(amanha)).order('vendida_em',{ascending:false}).order('id',{ascending:false})),
+      todasLinhas(()=>db.from('despesas').select('valor').eq('data_despesa',hoje).order('id')),
+      db.from('formas_pagamento').select('id,codigo,nome')
+    ]);
+    if(fr.error)throw fr.error;
+    const formas=new Map(fr.data.map(f=>[f.id,f]));
+    const vendido=vendas.reduce((s,v)=>s+Number(v.total),0);
+    const gasto=despesas.reduce((s,d)=>s+Number(d.valor),0);
+    const por={pix:0,dinheiro:0,cartao:0};
+    for(const v of vendas){const codigo=formas.get(v.forma_pagamento_id)?.codigo;if(Object.hasOwn(por,codigo))por[codigo]+=Number(v.total);}
+    $('data-caixa').textContent='Hoje, '+new Intl.DateTimeFormat('pt-BR',{timeZone:ZONA,dateStyle:'long'}).format(new Date());
+    for(const [id,valor] of Object.entries({vendeu:vendido,gastou:gasto,resultado:vendido-gasto,...por}))$(id).textContent=money(valor);
+    const lista=$('lista-vendas');lista.replaceChildren();
+    for(const v of vendas){
+      const b=document.createElement('button');b.type='button';b.className='venda-linha';
+      const horario=document.createElement('span'), valor=document.createElement('strong'), forma=document.createElement('span');
+      horario.textContent=horaLocal.format(new Date(v.vendida_em));valor.textContent=money(v.total);forma.textContent=formas.get(v.forma_pagamento_id)?.nome||'Pagamento';
+      b.append(horario,valor,forma);b.addEventListener('click',()=>abrirVenda(v,forma.textContent));lista.append(b);
+    }
+    $('caixa-estado').hidden=vendas.length>0;
+    if(!vendas.length)$('caixa-estado').textContent='Nenhuma venda registrada hoje.';
+  }catch(error){console.error(error);$('caixa-estado').textContent='Não foi possível carregar o Caixa. Toque em Atualizar.';avisar('Não foi possível atualizar o Caixa.');}
+  finally{carregandoCaixa=false;$('atualizar-caixa').disabled=false;}
+}
+async function abrirVenda(v,forma){
+  vendaAberta=null;$('detalhe-info').textContent='Carregando produtos…';$('detalhe-itens').replaceChildren();$('cancelar-registrada').disabled=true;
+  $('detalhe-venda').showModal();
+  const {data,error}=await db.from('itens_venda').select('produto_nome,quantidade,preco_unitario,subtotal').eq('venda_id',v.id).order('criado_em');
+  if(!$('detalhe-venda').open)return;
+  if(error){console.error(error);$('detalhe-info').textContent='Não foi possível carregar os produtos.';return;}
+  vendaAberta=v;$('cancelar-registrada').disabled=false;
+  $('detalhe-info').textContent=horaLocal.format(new Date(v.vendida_em))+' · '+forma;
+  $('detalhe-total').textContent=money(v.total);
+  for(const item of data){const linha=document.createElement('div');linha.className='detalhe-item';const nome=document.createElement('span'),preco=document.createElement('strong');nome.textContent=`${item.quantidade} × ${item.produto_nome}`;preco.textContent=money(item.subtotal);linha.append(nome,preco);$('detalhe-itens').append(linha);}
+}
+$('fechar-detalhe').addEventListener('click',()=>$('detalhe-venda').close());
+$('detalhe-venda').addEventListener('close',()=>vendaAberta=null);
+$('cancelar-registrada').addEventListener('click',async()=>{
+  if(!vendaAberta||cancelandoRegistrada)return;
+  if(!window.confirm(`Cancelar a venda de ${money(vendaAberta.total)}? Ela sairá do Caixa. Para corrigir, registre outra venda.`))return;
+  cancelandoRegistrada=true;$('cancelar-registrada').disabled=true;
+  try{
+    const {data,error}=await db.from('vendas').delete().eq('id',vendaAberta.id).select('id');
+    if(error)throw error;
+    if(data?.length!==1)throw new Error('Venda não encontrada ou sem permissão');
+    $('detalhe-venda').close();avisar('Venda cancelada.');await carregarCaixa();
+  }catch(error){console.error(error);avisar('Não foi possível cancelar. Confira a conexão e tente novamente.');}
+  finally{cancelandoRegistrada=false;$('cancelar-registrada').disabled=false;}
+});
+// Mantém a sessão de login e a navegação no mesmo documento.
+const exibirLogadoOriginal=exibirLogado;
+exibirLogado=function(logado){exibirLogadoOriginal(logado);$('navegacao').hidden=!logado;if(!logado){$('caixa').hidden=true;$('detalhe-venda').close();}else mostrarAba('venda');};

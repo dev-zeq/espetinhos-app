@@ -25,3 +25,9 @@ Abra `index.html` em um servidor HTTPS e entre com o usuário do estabelecimento
 Toque no produto para somar uma unidade; corrija no resumo com `+`, `−` ou remover. **Cancelar venda** limpa somente a venda atual. **Finalizar venda** chama `registrar_venda`, que valida o usuário, o pagamento e os produtos, calcula preços atuais no banco e insere venda e itens em uma única transação. Falha em qualquer etapa desfaz toda a gravação e conserva o carrinho na tela. Após sucesso, a tela fica pronta para outra venda.
 
 A função está em `supabase/migrations/20260924130000_modulo_02_registrar_venda.sql`. Apenas `authenticated` pode executá-la; ela usa as políticas RLS do módulo 01. O módulo 02 não publica o PWA nem cria o usuário final; essas etapas permanecem nos módulos planejados. Para testar localmente, sirva a pasta com `python3 -m http.server 8000` e abra `http://localhost:8000`.
+
+## 03 — Caixa
+
+A navegação **Venda / Caixa** usa a mesma sessão. O Caixa mostra vendas, despesas e resultado do dia; agrupa os recebimentos em Pix, Dinheiro e Cartão e lista as vendas recentes. Toque numa venda para consultar os produtos e quantidades. Para corrigir uma venda, cancele com confirmação e registre uma nova pela tela Venda. A exclusão usa a política RLS de `vendas` e remove os itens em cascata na mesma operação; o Caixa é atualizado após sucesso.
+
+“Hoje” segue `America/Sao_Paulo`, inclusive no filtro de instantes `vendida_em`. As despesas existentes são lidas pela coluna `data_despesa`, sem cadastro nesta etapa. A leitura pagina os registros para que o total não dependa do limite padrão de linhas da API. Ainda não há produtos, despesas ou usuário final cadastrados; essas etapas permanecem nos módulos previstos.

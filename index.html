@@ -11,6 +11,7 @@
 </head>
 <body>
   <header class="top"><div><span class="eyebrow">ESPETINHO APP</span><h1>Nova venda</h1></div><button id="sair" class="plain" hidden>Sair</button></header>
+  <nav id="navegacao" class="nav" aria-label="Telas" hidden><button id="aba-venda" type="button" aria-current="page">Venda</button><button id="aba-caixa" type="button">Caixa</button></nav>
   <main>
     <section id="login" class="login card" hidden>
       <h2>Entrar</h2><p>Use o e-mail e a senha do estabelecimento.</p>
@@ -32,7 +33,14 @@
         <button id="finalizar" class="primary finalizar" disabled>Finalizar venda</button>
       </section>
     </section>
+    <section id="caixa" class="caixa" hidden>
+      <p id="data-caixa" class="muted"></p>
+      <div class="indicadores"><div class="card destaque"><span>Vendeu hoje</span><strong id="vendeu">R$ 0,00</strong></div><div class="card"><span>Gastou hoje</span><strong id="gastou">R$ 0,00</strong></div><div class="card resultado"><span>Resultado do dia</span><strong id="resultado">R$ 0,00</strong></div></div>
+      <section class="card"><h2>Recebeu por</h2><div class="divisao"><div>Pix <strong id="pix">R$ 0,00</strong></div><div>Dinheiro <strong id="dinheiro">R$ 0,00</strong></div><div>Cartão <strong id="cartao">R$ 0,00</strong></div></div></section>
+      <section class="vendas-dia"><div class="lista-head"><h2>Vendas do dia</h2><button id="atualizar-caixa" class="plain" type="button">Atualizar</button></div><p id="caixa-estado" class="notice" hidden></p><div id="lista-vendas"></div></section>
+    </section>
   </main>
+  <dialog id="detalhe-venda" class="detalhe"><div class="lista-head"><h2>Detalhes da venda</h2><button id="fechar-detalhe" class="plain" type="button">Fechar</button></div><p id="detalhe-info"></p><div id="detalhe-itens"></div><div class="total"><span>Total</span><strong id="detalhe-total"></strong></div><button id="cancelar-registrada" class="danger" type="button">Cancelar esta venda</button><p class="muted">Para corrigir, cancele e registre a venda novamente.</p></dialog>
   <div id="mensagem" class="mensagem" role="status" aria-live="polite" hidden></div>
 </body>
 </html>
