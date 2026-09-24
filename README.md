@@ -17,3 +17,11 @@ PWA simples para registrar vendas, despesas e consultar o caixa de um pequeno co
 - Pagamentos: Pix, dinheiro e cartão.
 
 Nenhuma chave secreta ou senha deve ser versionada. As tabelas, regras de acesso e autenticação do aplicativo ficam para o módulo 01. A instalação do PWA no celular fica para os módulos 07 e 09. Produtos e preços reais serão cadastrados depois.
+
+## 02 — Tela Venda
+
+Abra `index.html` em um servidor HTTPS e entre com o usuário do estabelecimento (Supabase Auth, e-mail e senha). A tela lista somente produtos ativos das categorias Espetinhos e Bebidas, lidos de `produtos`. O catálogo está vazio até o cadastro dos produtos reais. A seleção de pagamento usa os registros ativos de `formas_pagamento`.
+
+Toque no produto para somar uma unidade; corrija no resumo com `+`, `−` ou remover. **Cancelar venda** limpa somente a venda atual. **Finalizar venda** chama `registrar_venda`, que valida o usuário, o pagamento e os produtos, calcula preços atuais no banco e insere venda e itens em uma única transação. Falha em qualquer etapa desfaz toda a gravação e conserva o carrinho na tela. Após sucesso, a tela fica pronta para outra venda.
+
+A função está em `supabase/migrations/20260924130000_modulo_02_registrar_venda.sql`. Apenas `authenticated` pode executá-la; ela usa as políticas RLS do módulo 01. O módulo 02 não publica o PWA nem cria o usuário final; essas etapas permanecem nos módulos planejados. Para testar localmente, sirva a pasta com `python3 -m http.server 8000` e abra `http://localhost:8000`.
