@@ -43,3 +43,9 @@ Cada gasto pode ser editado ou excluído com confirmação. Após criar, editar 
 A aba **Produtos** administra o cardápio sem alterar código ou acessar o Supabase. **Novo produto** pede somente nome, categoria e preço; o valor aceita formato brasileiro, como `10,00` e `12,50`. Os itens aparecem separados entre Espetinhos e Bebidas, com preço e situação visíveis.
 
 É possível editar nome, categoria e preço, ativar ou desativar e ajustar a prioridade com **Subir** e **Descer**. A ordem usa a coluna existente `ordem`. Produtos inativos continuam cadastrados e preservam os itens históricos das vendas, mas deixam de aparecer imediatamente na Tela Venda. O módulo reutiliza a tabela `produtos`, a autenticação e as políticas RLS existentes; não permite exclusão física e não cria nova estrutura de banco.
+
+## 06 — Resumo
+
+A aba **Resumo** oferece os períodos Hoje, Semana e Mês. Para cada período, mostra Vendeu, Gastou e Resultado, calculado simplesmente como vendas menos despesas registradas no aplicativo. Semana significa a semana atual desde segunda-feira; Mês significa o mês calendário atual. Todos os limites respeitam `America/Sao_Paulo`.
+
+**Mais vendidos** soma as quantidades registradas em `itens_venda` e usa `produto_nome`, preservando o histórico mesmo se um produto for editado ou desativado. **Formas de pagamento** separa os valores recebidos em Pix, Dinheiro e Cartão. A tela reutiliza as tabelas e políticas RLS existentes, não cria totais duplicados nem nova estrutura no banco.
