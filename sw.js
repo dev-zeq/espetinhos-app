@@ -1,4 +1,4 @@
-const CACHE = 'espetinho-app-v2';
+const CACHE = 'espetinho-app-v3';
 const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.102.0/dist/umd/supabase.min.js';
 const ESSENCIAIS = ['./','./index.html','./manifest.webmanifest','./assets/style.css','./assets/app.js','./assets/icons/icon-192.png','./assets/icons/icon-maskable-192.png','./assets/icons/icon-512.png','./assets/icons/icon-maskable-512.png',SUPABASE_JS];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ESSENCIAIS)).then(()=>self.skipWaiting()));});
