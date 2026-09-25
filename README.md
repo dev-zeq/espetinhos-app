@@ -55,3 +55,11 @@ A aba **Resumo** oferece os períodos Hoje, Semana e Mês. Para cada período, m
 O aplicativo inclui manifest, ícones comuns e maskable em 192 e 512 px e Service Worker. Em hospedagem HTTPS, o Android pode instalar o **Espetinho App** na tela inicial e abri-lo em modo standalone. O Service Worker guarda somente os arquivos essenciais da interface; leituras e gravações no Supabase continuam exigindo conexão.
 
 Os arquivos principais usam rede primeiro, com o cache apenas como alternativa quando a rede falha. Cada nova versão deve incrementar a constante `CACHE` em `sw.js`; durante a ativação, caches antigos são removidos. Em telas pequenas, a navegação fica fixa na parte inferior, sem rolagem horizontal, e formulários e valores foram ajustados para a altura e largura disponíveis.
+
+## 08 — Testes reais
+
+O aplicativo foi publicado temporariamente por HTTPS no GitHub Pages e testado em um Android real como PWA instalado. Foram validados login, abertura pelo ícone, modo standalone, reabertura, atualização, navegação pelas cinco abas e comportamento sem internet. O aplicativo não registra vendas offline: ao perder conexão, o botão de finalização fica bloqueado e informa **Sem internet — não salva**; ao reconectar, o usuário recebe confirmação e pode tentar novamente com o carrinho preservado.
+
+O fluxo completo validou vendas em Pix, Dinheiro e Cartão, quantidades e remoção de itens, cancelamento antes e depois da finalização, Caixa, detalhes, despesas com valor brasileiro, edição e exclusão, cadastro e edição de produtos, categoria, ativação, ordem e Resumo em Hoje, Semana e Mês. As conferências matemáticas passaram: a soma dos itens corresponde a cada venda, os pagamentos correspondem ao faturamento e `Vendas − Despesas = Resultado`.
+
+O histórico também foi preservado após alterar nome e preço no catálogo. O teste real encontrou uma tela vazia causada pelo nome global `URL`, que conflitava com o construtor nativo usado pelo Supabase. A correção foi integrada pelo PR #3, junto do estado offline explícito e da atualização do cache do PWA. O RLS permanece ativo nas cinco tabelas. A função `registrar_venda` rejeita sessão ausente, pagamento inválido, venda vazia, quantidade inválida e produto inativo.
