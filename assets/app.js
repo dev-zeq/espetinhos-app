@@ -1,6 +1,6 @@
-const URL = 'https://twwnxrdohjozeayyxiwu.supabase.co';
+const SUPABASE_URL = 'https://twwnxrdohjozeayyxiwu.supabase.co';
 const KEY = 'sb_publishable_bfs8ShD7RgQ61Cv2ikt2Bw_GfN1E2zk';
-const db = supabase.createClient(URL, KEY, {db:{retry:false}});
+const db = supabase.createClient(SUPABASE_URL, KEY, {db:{retry:false}});
 const $ = id => document.getElementById(id);
 const money = value => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(value);
 if('serviceWorker' in navigator){
